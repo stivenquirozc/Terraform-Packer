@@ -14,37 +14,7 @@ provider "aws" {
   region  = "us-west-1"
 }
 
-resource "aws_instance" "app_backend" {
-  ami           = "ami-08c1af131b3169cae"
-  instance_type = "t2.micro"
-  vpc_security_group_ids = ["sg-070706447508199bc"]
-  subnet_id     = "subnet-0088df5de3a4fe490"
-  volume_tags = {
-    project     = "ramp-up-devops"
-    responsible = "squiroz"
-    }
-  tags = {
-    project     = "ramp-up-devops"
-    responsible = "squiroz"
-  }
-  }
-
-  resource "aws_instance" "app_frontend" {
-  ami           = "ami-0ed43bc6a2b296ecc"
-  instance_type = "t2.micro"
-  vpc_security_group_ids = ["sg-070706447508199bc"]
-  subnet_id     = "subnet-0088df5de3a4fe490"
-  volume_tags = {
-    project     = "ramp-up-devops"
-    responsible = "squiroz"
-    }
-  tags = {
-    project     = "ramp-up-devops"
-    responsible = "squiroz"
-  }
-  }
-
-  resource "aws_elb" "web_elb" {
+  resource "aws_elb" "backend" {
   name = "backend-lb-squiroz-rumpup"
   internal           = true
   security_groups = ["sg-07439af226c920943"]
@@ -66,12 +36,11 @@ resource "aws_instance" "app_backend" {
     instance_port = "3000"
     instance_protocol = "http"
   }
-
 }
 
-  resource "aws_launch_configuration" "as_conf" {
+resource "aws_launch_configuration" "backend" {
   name   = "terraform-lc-example-backend-squiroz"
-  image_id      = "ami-01fba9d080aa93cb6"
+  image_id      = "ami-0bcdbeca59a7e6a06" 
   associate_public_ip_address = false
   key_name = "squiroz"
   security_groups = ["sg-07439af226c920943"]
@@ -82,21 +51,20 @@ resource "aws_instance" "app_backend" {
   }
 }
 
-resource "aws_autoscaling_group" "web" {
+resource "aws_autoscaling_group" "backend" {
   name = "asg-backend-squiroz-terraform"
-  min_size             = 0
-  desired_capacity     = 0
-  max_size             = 0  
+  min_size             = 1
+  desired_capacity     = 1
+  max_size             = 1  
   health_check_type    = "ELB"
-  vpc_zone_identifier       = ["subnet-0d74b59773148d704", "subnet-038fa9d9a69d6561e"]
+  vpc_zone_identifier       = ["subnet-038fa9d9a69d6561e", "subnet-0d74b59773148d704"]
   load_balancers = ["backend-lb-squiroz-rumpup"]
   launch_configuration      = "terraform-lc-example-backend-squiroz"
 
   lifecycle {
     create_before_destroy = true
+    }
   }
-
-}
 
 resource "aws_elb" "frontend" {
   name = "frontend-lb-squiroz-rumpup"
@@ -112,7 +80,7 @@ resource "aws_elb" "frontend" {
     timeout = 3
     interval = 30
     target = "HTTP:3030/"
-  }
+    }
 
   listener {
     lb_port = 3030
@@ -120,12 +88,11 @@ resource "aws_elb" "frontend" {
     instance_port = "3030"
     instance_protocol = "http"
   }
-
 }
 
   resource "aws_launch_configuration" "frontend" {
   name   = "terraform-lc-example-frontend-squiroz"
-  image_id      = "ami-083d2792b45e394ea"
+  image_id      = "ami-074df41120ce378df" 
   associate_public_ip_address = true
   key_name = "squiroz"
   security_groups = ["sg-070706447508199bc"]
@@ -138,9 +105,9 @@ resource "aws_elb" "frontend" {
 
 resource "aws_autoscaling_group" "frontend" {
   name = "asg-frontend-squiroz-terraform"
-  min_size             = 0
-  desired_capacity     = 0
-  max_size             = 0  
+  min_size             = 1
+  desired_capacity     = 1
+  max_size             = 1  
   health_check_type    = "ELB"
   vpc_zone_identifier       = ["subnet-0088df5de3a4fe490", "subnet-055c41fce697f9cca"]
   load_balancers = ["frontend-lb-squiroz-rumpup"]
@@ -148,9 +115,26 @@ resource "aws_autoscaling_group" "frontend" {
 
   lifecycle {
     create_before_destroy = true
+    }
   }
 
-}
+resource "aws_db_instance" "mysql" {
+  allocated_storage    = 5
+  engine               = "mysql"
+  engine_version       = "8.0.23"
+  instance_class       = "db.t2.micro"
+  name                 = "movie_db"
+  username             = "applicationuser"
+  password             = "applicationuser"
+  skip_final_snapshot  = false
+  db_subnet_group_name = "default-group-private-rumpup-squiroz"
+  vpc_security_group_ids = ["sg-068b2c295fafbcbf8"]
+  publicly_accessible = false
+
+   }
+
+
+
 
 
   
